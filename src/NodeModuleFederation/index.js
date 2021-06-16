@@ -1,0 +1,77 @@
+const ModuleFederationPlugin = require("webpack/lib/container/ModuleFederationPlugin");
+const rpcLoadTemplate = require("../templates/rpcLoad");
+
+const rpcPerformTemplate = `
+    ${rpcLoadTemplate}
+    function rpcPerform(remoteUrl) {
+        const scriptUrl = remoteUrl.split("@")[1];
+        const moduleName = remoteUrl.split("@")[0];
+        return new Promise(function (resolve, reject) {
+            rpcLoad(scriptUrl, function(error, scriptContent) {
+                if (error) { reject(error); }
+                //TODO using vm??
+                //TODO remove moduleName;
+                const remote = eval(scriptContent + '\\n ' + moduleName + ';');
+                if (remote instanceof Promise) {
+                    return remote;
+                } else {
+                    resolve(remote);
+                }
+            });
+        });
+    }
+`;
+
+const rpcProcessTemplate = (mfConfig) => `
+    function rpcProcess(remote) {
+        return {get:(request)=> remote.get(request),init:(arg)=>{try {return remote.init({
+            ...arg,
+            ${Object.keys(mfConfig.shared)
+              .filter(
+                (item) =>
+                  mfConfig.shared[item].singleton &&
+                  mfConfig.shared[item].requiredVersion
+              )
+              .map(function (item) {
+                return `"${item}": {
+                      ["${mfConfig.shared[item].requiredVersion}"]: {
+                        get: () => Promise.resolve().then(() => () => require("${item}"))
+                      }
+                  }`;
+              })
+              .join(",")}
+        })} catch(e){console.log('remote container already initialized')}}}
+    }
+`;
+
+function buildRemotes(mfConf) {
+  const builtinsTemplate = `
+    ${rpcPerformTemplate}
+    ${rpcProcessTemplate(mfConf)}
+  `;
+  return Object.entries(mfConf.remotes).reduce((acc, [name, config]) => {
+    acc[name] = {
+      external: `external (function() {
+        ${builtinsTemplate}
+        return rpcPerform("${config}").then(rpcProcess)
+      }())`,
+    };
+    return acc;
+  }, {});
+}
+
+class NodeModuleFederation {
+  constructor(config) {
+    this._config = config;
+  }
+  apply(compiler) {
+    //todo top async?
+    compiler.options.experiments = { topLevelAwait: true };
+    new ModuleFederationPlugin({
+      ...this._config,
+      remotes: buildRemotes(this._config),
+    }).apply(compiler);
+  }
+}
+
+module.exports = NodeModuleFederation;

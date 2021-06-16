@@ -1,0 +1,29 @@
+{
+  "name": "@telenko/node-mf",
+  "version": "0.0.1~beta",
+  "description": "Module Federation plugin support for NodeJS",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "peerDependencies": {
+    "webpack": "^5.38.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/telenko/node-mf.git"
+  },
+  "keywords": [
+    "Module",
+    "federation",
+    "nodejs",
+    "node",
+    "next"
+  ],
+  "author": "Andrii Telenko",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/telenko/node-mf/issues"
+  },
+  "homepage": "https://github.com/telenko/node-mf#readme"
+}
