@@ -65,8 +65,6 @@ class NodeModuleFederation {
     this._config = config;
   }
   apply(compiler) {
-    //todo top async?
-    compiler.options.experiments = { topLevelAwait: true };
     new ModuleFederationPlugin({
       ...this._config,
       remotes: buildRemotes(this._config),
