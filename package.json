@@ -1,6 +1,6 @@
 {
   "name": "@telenko/node-mf",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Module Federation plugin support for NodeJS",
   "main": "src/index.js",
   "scripts": {
@@ -18,7 +18,8 @@
     "federation",
     "nodejs",
     "node",
-    "next"
+    "next",
+    "webpack"
   ],
   "author": "Andrii Telenko",
   "license": "MIT",
