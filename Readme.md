@@ -1,16 +1,19 @@
-# Library is a set of webpack plugins which gives support of Module Federation into NodeJS
+# About
+Library is a set of webpack plugins which gives support of Module Federation into NodeJS.
 
-## Usage example with NextJS https://github.com/telenko/node-mf-example
+Usage example with NextJS https://github.com/telenko/node-mf-example
 
-## Purpose of creating
+Here is also my [article](https://mangolik931.medium.com/how-i-implemented-module-federation-in-nodejs-and-did-something-wrong-724642c26da5) about this library.
+
+# Purpose of creating
 Release of [Webpack Module Federation](https://webpack.js.org/concepts/module-federation/) really have made a shift in modern architecture of web applications. But what about NodeJS and such frameworks like [Next](https://nextjs.org/)? What about SSR? I see for now a gap in webpack, so pure ModuleFederation plugin can not be used inside NodeJS environment. Muliple examples of NextJS+MF here https://github.com/module-federation/module-federation-examples with NextJS using only client-side rendering or not using remote deployed build at all.
 
-## What I can propose
+# What can I propose
 I have implemented 2 plugins for webpack:
 1) **NodeAsyncHttpRuntime** - Plugin which should be used on a remote side to build remote scripts for NodeJS. But the main key of plugin is resolution of modules - it is done via http requests, so NodeJS can dynamically resolve child modules, load them and perform.
 2) **NodeModuleFederation** - Plugin is wrapper around origin WebpackModuleFederation plugin and adds NodeJS specific resolution of remote modules (same thing: resolution is done via http requests)
 
-## Getting started
+# Getting started
 ### 1) On remote library:
 
   1.1) Install package (remote can be either pure JS application or NodeJS application - doesn't matter)
@@ -75,7 +78,8 @@ Full example is here https://github.com/telenko/node-mf-example/blob/master/remo
 
 Full example of setuping NextJS with SSR here https://github.com/telenko/node-mf-example/blob/master/host/next.config.js
 
+# Risks
 ## Aren't 2 build makes build-time 2 times longer?
 Yes, if we speak about NextJS and SSR - we need both builds: for web and for node, and we have to start entire build separately without sharing built chunks. That will increase build time 2 times.
 ## Security
-Since NodeJS out of the box doesn't support remote scripts execution (like in browser we can add <script> tag) it looks like a hack calling http request then 'eval'-ing it. I'm not sure if it is safe to add remote script execution on server side, but it is the only one possible way to make it on server.
+Since NodeJS out of the box doesn't support remote scripts execution (like in browser we can add **script** tag) it looks like a hack calling http request then 'eval'-ing it. I'm not sure if it is safe to add remote script execution on server side, but it is the only one possible way to make it on server.
