@@ -11,6 +11,7 @@ class NodeAsyncHttpRuntime {
     if (compiler.options.target) {
       console.warn(`target should be set to false while using NodeAsyncHttpRuntime plugin, actual target: ${compiler.options.target}`);
     }
+    compiler.options.output.chunkFormat = 'commonjs';
     new CommonJsChunkFormatPlugin().apply(compiler);
     new NodeEnvironmentPlugin({ infrastructureLogging: compiler.options.infrastructureLogging }).apply(compiler);
     new NodeTargetPlugin().apply(compiler);

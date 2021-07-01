@@ -17,17 +17,18 @@ module.exports = `
             throw new Error("invalid number of arguments");
         }
         //TODO https support
-        (url.startsWith('https') ? require('https') : require('http')).get(url, function(resp) {
+        let request = (url.startsWith('https') ? require('https') : require('http')).get(url, function(resp) {
             if (resp.statusCode === 200) {
                 let rawData = '';
                 resp.setEncoding('utf8');
                 resp.on('data', chunk => { rawData += chunk; });
                 resp.on('end', () => {
-                cb(null, rawData);
+                    cb(null, rawData);
                 });
             } else {
-            cb(resp);
+                cb(resp);
             }
         });
+        request.on('error', error => cb(error));
     }
 `;

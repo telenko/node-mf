@@ -10,9 +10,10 @@ const rpcPerformTemplate = `
             rpcLoad(scriptUrl, function(error, scriptContent) {
                 if (error) { reject(error); }
                 //TODO using vm??
-                //TODO remove moduleName;
-                const remote = eval(scriptContent + '\\n ' + moduleName + ';');
-                if (remote instanceof Promise) {
+                const remote = eval(scriptContent + '\\n  try{' + moduleName + '}catch(e) { null; };');
+                if (!remote) {
+                  reject("remote library " + moduleName + " is not found at " + scriptUrl);
+                } else if (remote instanceof Promise) {
                     return remote;
                 } else {
                     resolve(remote);

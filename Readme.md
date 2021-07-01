@@ -83,3 +83,7 @@ Full example of setuping NextJS with SSR here https://github.com/telenko/node-mf
 Yes, if we speak about NextJS and SSR - we need both builds: for web and for node, and we have to start entire build separately without sharing built chunks. That will increase build time 2 times.
 ## Security
 Since NodeJS out of the box doesn't support remote scripts execution (like in browser we can add **script** tag) it looks like a hack calling http request then 'eval'-ing it. I'm not sure if it is safe to add remote script execution on server side, but it is the only one possible way to make it on server.
+
+# Roadmap
+1) https support
+2) Next.js support for NodeAsyncHttpRuntime plugin
