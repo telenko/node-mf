@@ -24,24 +24,48 @@ const rpcPerformTemplate = `
 `;
 
 const rpcProcessTemplate = (mfConfig) => `
-    function rpcProcess(remote) {
-        return {get:(request)=> remote.get(request),init:(arg)=>{try {return remote.init({
+    function rpcProcess(remoteUrl) {
+      let initArgs = null;
+      const init = (remote, arg)=>{
+        try {
+          return remote.init({
             ...arg,
-            ${Object.keys(mfConfig.shared)
-              .filter(
-                (item) =>
-                  mfConfig.shared[item].singleton &&
-                  mfConfig.shared[item].requiredVersion
-              )
-              .map(function (item) {
-                return `"${item}": {
-                      ["${mfConfig.shared[item].requiredVersion}"]: {
-                        get: () => Promise.resolve().then(() => () => require("${item}"))
-                      }
-                  }`;
-              })
-              .join(",")}
-        })} catch(e){console.log('remote container already initialized')}}}
+        ${Object.keys(mfConfig.shared)
+          .filter(
+            (item) =>
+              mfConfig.shared[item].singleton &&
+              mfConfig.shared[item].requiredVersion
+          )
+          .map(function (item) {
+            return `"${item}": {
+                  ["${mfConfig.shared[item].requiredVersion}"]: {
+                    get: () => Promise.resolve().then(() => () => require("${item}"))
+                  }
+              }`;
+          })
+          .join(",")}
+          })
+        } catch(e) {
+          console.log('remote container already initialized')
+        }
+      };
+      return {
+        get:(request)=> {
+          return async () => {
+            // refetch and init
+            const remote = await rpcPerform(remoteUrl);
+            const initRes = await init(remote, initArgs);
+            console.log('initRes', initRes);
+            const getRes = await remote.get(request);
+            return getRes();
+          }
+        },
+        init: async (arg) => {
+          initArgs = arg;
+          const remote = await rpcPerform(remoteUrl);
+          return init(remote, arg);
+        },
+      }
     }
 `;
 
@@ -54,7 +78,7 @@ function buildRemotes(mfConf) {
     acc[name] = {
       external: `external (function() {
         ${builtinsTemplate}
-        return rpcPerform("${config}").then(rpcProcess)
+        return rpcProcess("${config}")
       }())`,
     };
     return acc;
