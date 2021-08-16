@@ -53,8 +53,14 @@ function buildRemotes(mfConf) {
   return Object.entries(mfConf.remotes).reduce((acc, [name, config]) => {
     acc[name] = {
       external: `external (function() {
-        ${builtinsTemplate}
-        return rpcPerform("${config}").then(rpcProcess)
+        if (!globalThis._MFRemotes) {
+          globalThis._MFRemotes = {};
+        }
+        if (!globalThis._MFRemotes["${name}"]) {
+          ${builtinsTemplate}
+          globalThis._MFRemotes["${name}"] = rpcPerform("${config}").then(rpcProcess)
+        }
+        return globalThis._MFRemotes["${name}"];
       }())`,
     };
     return acc;
