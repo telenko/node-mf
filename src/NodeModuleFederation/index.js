@@ -55,15 +55,13 @@ const rpcProcessTemplate = (mfConfig) => `
             // refetch and init
             const remote = await rpcPerform(remoteUrl);
             const initRes = await init(remote, initArgs);
-            console.log('initRes', initRes);
             const getRes = await remote.get(request);
             return getRes();
           }
         },
-        init: async (arg) => {
+        init: (arg) => {
           initArgs = arg;
-          const remote = await rpcPerform(remoteUrl);
-          return init(remote, arg);
+          return;
         },
       }
     }
