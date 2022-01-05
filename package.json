@@ -1,6 +1,6 @@
 {
   "name": "@telenko/node-mf",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Module Federation plugin support for NodeJS",
   "main": "src/index.js",
   "scripts": {

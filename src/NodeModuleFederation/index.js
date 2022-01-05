@@ -1,4 +1,3 @@
-const ModuleFederationPlugin = require("webpack/lib/container/ModuleFederationPlugin");
 const rpcLoadTemplate = require("../templates/rpcLoad");
 
 const rpcPerformTemplate = `
@@ -27,7 +26,7 @@ const rpcProcessTemplate = (mfConfig) => `
     function rpcProcess(remote) {
         return {get:(request)=> remote.get(request),init:(arg)=>{try {return remote.init({
             ...arg,
-            ${Object.keys(mfConfig.shared)
+            ${Object.keys(mfConfig.shared || {})
               .filter(
                 (item) =>
                   mfConfig.shared[item].singleton &&
@@ -50,7 +49,7 @@ function buildRemotes(mfConf) {
     ${rpcPerformTemplate}
     ${rpcProcessTemplate(mfConf)}
   `;
-  return Object.entries(mfConf.remotes).reduce((acc, [name, config]) => {
+  return Object.entries(mfConf.remotes || {}).reduce((acc, [name, config]) => {
     acc[name] = {
       external: `external (function() {
         ${builtinsTemplate}
@@ -62,13 +61,18 @@ function buildRemotes(mfConf) {
 }
 
 class NodeModuleFederation {
-  constructor(config) {
-    this._config = config;
+  constructor(options, context) {
+    this.options = options || {};
+    this.context = context || {};
   }
   apply(compiler) {
-    new ModuleFederationPlugin({
-      ...this._config,
-      remotes: buildRemotes(this._config),
+    // When used with Next.js, context is needed to use Next.js webpack
+    const { webpack } = this.context;
+
+    new (webpack?.container.ModuleFederationPlugin ||
+      require("webpack/lib/container/ModuleFederationPlugin"))({
+      ...this.options,
+      remotes: buildRemotes(this.options),
     }).apply(compiler);
   }
 }

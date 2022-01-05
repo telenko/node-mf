@@ -48,7 +48,7 @@ Full example is here https://github.com/telenko/node-mf-example/blob/master/remo
 
 ### 2) On NodeJS application:
 
-  2.1) Install library 
+  2.1) Install library
     ```
     npm i --save-dev @telenko/node-mf
     ```
@@ -75,6 +75,44 @@ Full example is here https://github.com/telenko/node-mf-example/blob/master/remo
         ...otherWebpackOptions
     };
   ```
+
+### Usage with Next.js
+
+As Next.js use an internal version of webpack, it's mandatory to use their version. To do so, use the second argument of the 2 plugins to send the "context" of the [webpack options](https://nextjs.org/docs/api-reference/next.config.js/custom-webpack-config).
+
+```js
+// next.config.js
+module.exports = {
+    webpack: (config, options) => {
+        config.plugins.push(
+            new NodeAsyncHttpRuntime({}, options)
+        );
+        return config
+    },
+}
+```
+```js
+// next.config.js
+module.exports = {
+    webpack: (config, options) => {
+        config.plugins.push(
+            new NodeModuleFederation({
+                remotes: {
+                    someLib: "someLib@http://some-url/remoteEntry.node.js"
+                },
+                shared: {
+                    lodash: {
+                        eager: true,
+                        singleton: true,
+                        requiredVersion: "1.1.2"
+                    }
+                }
+            }, options)
+        );
+        return config
+    },
+}
+```
 
 Full example of setuping NextJS with SSR here https://github.com/telenko/node-mf-example/blob/master/host/next.config.js
 
