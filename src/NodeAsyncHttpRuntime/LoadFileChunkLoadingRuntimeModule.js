@@ -7,10 +7,6 @@
 const RuntimeGlobals = require("webpack/lib/RuntimeGlobals");
 const RuntimeModule = require("webpack/lib/RuntimeModule");
 const Template = require("webpack/lib/Template");
-const {
-  chunkHasJs,
-  getChunkFilenameTemplate,
-} = require("webpack/lib/javascript/JavascriptModulesPlugin");
 const { getInitialChunkIds } = require("webpack/lib/javascript/StartupHelpers");
 const compileBooleanMatcher = require("webpack/lib/util/compileBooleanMatcher");
 const { getUndoPath } = require("webpack/lib/util/identifier");
@@ -18,17 +14,20 @@ const { getUndoPath } = require("webpack/lib/util/identifier");
 const rpcLoadTemplate = require("../templates/rpcLoad");
 
 class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
-  constructor(runtimeRequirements, baseURI) {
+  constructor(runtimeRequirements, options, context) {
     super("readFile chunk loading", RuntimeModule.STAGE_ATTACH);
     this.runtimeRequirements = runtimeRequirements;
-    this.baseURI = baseURI;
+    this.options = options;
+    this.context = context;
   }
 
   /**
    * @returns {string} runtime code
    */
   generate() {
-    const { chunkGraph, chunk, baseURI } = this;
+    const { chunkGraph, chunk } = this;
+    const { baseURI, promiseBaseURI } = this.options;
+    const { webpack } = this.context;
     const { runtimeTemplate } = this.compilation;
     const fn = RuntimeGlobals.ensureChunkHandlers;
     const withBaseURI = this.runtimeRequirements.has(RuntimeGlobals.baseURI);
@@ -47,12 +46,20 @@ class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
     const withHmrManifest = this.runtimeRequirements.has(
       RuntimeGlobals.hmrDownloadManifest
     );
-    const conditionMap = chunkGraph.getChunkConditionMap(chunk, chunkHasJs);
+    const conditionMap = chunkGraph.getChunkConditionMap(
+      chunk,
+      webpack?.javascript.JavascriptModulesPlugin.chunkHasJs ||
+        require("webpack/lib/javascript/JavascriptModulesPlugin").chunkHasJs
+    );
     const hasJsMatcher = compileBooleanMatcher(conditionMap);
     const initialChunkIds = getInitialChunkIds(chunk, chunkGraph);
 
     const outputName = this.compilation.getPath(
-      getChunkFilenameTemplate(chunk, this.compilation.outputOptions),
+      (
+        webpack?.javascript.JavascriptModulesPlugin.getChunkFilenameTemplate ||
+        require("webpack/lib/javascript/JavascriptModulesPlugin")
+          .getChunkFilenameTemplate
+      )(chunk, this.compilation.outputOptions),
       {
         chunk,
         contentHashType: "javascript",
@@ -139,7 +146,7 @@ class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
                         : `if(${hasJsMatcher("chunkId")}) {`,
                       Template.indent([
                         "// load the chunk and return promise to it",
-                        "var promise = new Promise(function(resolve, reject) {",
+                        "var promise = new Promise(async function(resolve, reject) {",
                         Template.indent([
                           "installedChunkData = installedChunks[chunkId] = [resolve, reject];",
                           `var filename = require('path').join(__dirname, ${JSON.stringify(
@@ -148,7 +155,13 @@ class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
                             RuntimeGlobals.getChunkScriptFilename
                           }(chunkId));`,
                           rpcLoadTemplate,
-                          `rpcLoad("${baseURI}", ${RuntimeGlobals.getChunkScriptFilename}(chunkId), function(err, content) {`,
+                          `rpcLoad(${
+                            promiseBaseURI
+                              ? `await ${promiseBaseURI}`
+                              : `"${baseURI}"`
+                          }, ${
+                            RuntimeGlobals.getChunkScriptFilename
+                          }(chunkId), function(err, content) {`,
                           Template.indent([
                             "if(err) return reject(err);",
                             "var chunk = {};",
@@ -183,13 +196,17 @@ class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
         ? Template.asString([
             "function loadUpdateChunk(chunkId, updatedModulesList) {",
             Template.indent([
-              "return new Promise(function(resolve, reject) {",
+              "return new Promise(async function(resolve, reject) {",
               Template.indent([
                 `var filename = require('path').join(__dirname, ${JSON.stringify(
                   rootOutputDir
                 )} + ${RuntimeGlobals.getChunkUpdateScriptFilename}(chunkId));`,
                 rpcLoadTemplate,
-                `rpcLoad("${baseURI}", ${RuntimeGlobals.getChunkUpdateScriptFilename}(chunkId), function(err, content) {`,
+                `rpcLoad(${
+                  promiseBaseURI ? `await ${promiseBaseURI}` : `"${baseURI}"`
+                }, ${
+                  RuntimeGlobals.getChunkUpdateScriptFilename
+                }(chunkId), function(err, content) {`,
                 Template.indent([
                   "if(err) return reject(err);",
                   "var update = {};",
