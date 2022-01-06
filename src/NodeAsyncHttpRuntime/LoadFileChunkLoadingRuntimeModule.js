@@ -26,7 +26,7 @@ class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
    */
   generate() {
     const { chunkGraph, chunk } = this;
-    const { baseURI, promiseBaseURI } = this.options;
+    const { baseURI, getBaseUri } = this.options;
     const { webpack } = this.context;
     const { runtimeTemplate } = this.compilation;
     const fn = RuntimeGlobals.ensureChunkHandlers;
@@ -156,8 +156,8 @@ class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
                           }(chunkId));`,
                           rpcLoadTemplate,
                           `rpcLoad(${
-                            promiseBaseURI
-                              ? `await ${promiseBaseURI}`
+                            getBaseUri
+                              ? `await ${getBaseUri(baseURI)}`
                               : `"${baseURI}"`
                           }, ${
                             RuntimeGlobals.getChunkScriptFilename

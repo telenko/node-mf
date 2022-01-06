@@ -44,16 +44,20 @@ const rpcProcessTemplate = (mfConfig) => `
     }
 `;
 
-function buildRemotes(mfConf) {
+function buildRemotes(mfConf, getRemoteUri) {
   const builtinsTemplate = `
     ${rpcPerformTemplate}
     ${rpcProcessTemplate(mfConf)}
   `;
   return Object.entries(mfConf.remotes || {}).reduce((acc, [name, config]) => {
     acc[name] = {
-      external: `external (function() {
+      external: `external (async function() {
         ${builtinsTemplate}
-        return rpcPerform("${config}").then(rpcProcess)
+        return rpcPerform(${
+          getRemoteUri
+            ? `await ${getRemoteUri(config)}`
+            : `"${config}"`
+        }).then(rpcProcess).catch((err) => { console.error(err); })
       }())`,
     };
     return acc;
@@ -65,14 +69,16 @@ class NodeModuleFederation {
     this.options = options || {};
     this.context = context || {};
   }
+
   apply(compiler) {
+    const { getRemoteUri, ...options } = this.options;
     // When used with Next.js, context is needed to use Next.js webpack
     const { webpack } = this.context;
 
     new (webpack?.container.ModuleFederationPlugin ||
       require("webpack/lib/container/ModuleFederationPlugin"))({
-      ...this.options,
-      remotes: buildRemotes(this.options),
+      ...options,
+      remotes: buildRemotes(options, getRemoteUri),
     }).apply(compiler);
   }
 }

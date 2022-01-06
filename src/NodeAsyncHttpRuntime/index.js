@@ -33,7 +33,7 @@ class NodeAsyncHttpRuntime {
       {
         asyncChunkLoading: true,
         baseURI: compiler.options.output.publicPath,
-        promiseBaseURI: this.options.promiseBaseURI,
+        getBaseUri: this.options.getBaseUri,
       },
       this.context
     ).apply(compiler);
