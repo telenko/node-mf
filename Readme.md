@@ -116,6 +116,60 @@ module.exports = {
 
 Full example of setuping NextJS with SSR here https://github.com/telenko/node-mf-example/blob/master/host/next.config.js
 
+### Usage with runtime uris
+
+If you do not know the real uri during the build step, you can use a promise which will be executed at runtime.
+
+Here is an example based on [telenko/node-mf-example](https://github.com/telenko/node-mf-example) to have an url according to the dev or CDN host. On the CDN, the assets are stored in a path according to the remote app name. The environment variable `CDN_URL` is only known on the production server so we set an alternative for the development env.
+
+```js
+// host
+module.exports = {
+    webpack: (config, options) => {
+        // [...]
+        if (isServer) {
+            // Set the public path of the remote as auto
+            mfConf.remotes.remoteLib = "remoteLib@auto";
+            // Parse the remote uri and return a promise template string with the runtime data
+            mfConf.getRemoteUri = function (remoteUri) {
+                const remoteName = remoteUri.split("@")[0];
+                return `new Promise(r => {
+                    const uri = "${process.env.CDN_URL ? `${process.env.CDN_URL}/${remoteName}` : 'http://localhost:3002'}";
+                    r("${remoteName}@${uri}/node/remoteEntry.js");
+                })`
+            }
+        }
+        // [...]
+    }
+};
+```
+
+```js
+// remoteLib
+const getConfig = (target) => ({
+    plugins: [
+        ...(target === "web"
+            ? [
+                new HtmlWebpackPlugin({
+                    template: "./public/index.html"
+                })
+            ]
+            : [
+                new NodeAsyncHttpRuntime({
+                    getBaseUri = function () {
+                        // Return a promise template string with the runtime data
+                        return `new Promise(r => {
+                            const uri = "${process.env.CDN_URL ? `${process.env.CDN_URL}/remoteLib` :  'http://localhost:3002'}";
+                            r("${uri}/${target}/");
+                        })`
+                    }
+                })
+            ]
+        )
+    ]
+});
+```
+
 # Risks
 ## Aren't 2 build makes build-time 2 times longer?
 Yes, if we speak about NextJS and SSR - we need both builds: for web and for node, and we have to start entire build separately without sharing built chunks. That will increase build time 2 times.
