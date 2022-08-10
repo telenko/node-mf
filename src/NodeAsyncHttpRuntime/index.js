@@ -33,6 +33,7 @@ class NodeAsyncHttpRuntime {
       {
         asyncChunkLoading: true,
         baseURI: compiler.options.output.publicPath,
+        customRpcLoadFromBaseURITemplate: this.options.customRpcLoadFromBaseURITemplate,
         getBaseUri: this.options.getBaseUri,
       },
       this.context
