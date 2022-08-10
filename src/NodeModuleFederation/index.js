@@ -1,26 +1,5 @@
 const rpcLoadTemplate = require("../templates/rpcLoad");
-
-const rpcPerformTemplate = `
-    ${rpcLoadTemplate}
-    function rpcPerform(remoteUrl) {
-        const scriptUrl = remoteUrl.split("@")[1];
-        const moduleName = remoteUrl.split("@")[0];
-        return new Promise(function (resolve, reject) {
-            rpcLoad(scriptUrl, function(error, scriptContent) {
-                if (error) { reject(error); }
-                //TODO using vm??
-                const remote = eval(scriptContent + '\\n  try{' + moduleName + '}catch(e) { null; };');
-                if (!remote) {
-                  reject("remote library " + moduleName + " is not found at " + scriptUrl);
-                } else if (remote instanceof Promise) {
-                    return remote;
-                } else {
-                    resolve(remote);
-                }
-            });
-        });
-    }
-`;
+const rpcPerformTemplate = require("../templates/rpcPerform");
 
 const rpcProcessTemplate = (mfConfig) => `
     function rpcProcess(remote) {
@@ -46,6 +25,7 @@ const rpcProcessTemplate = (mfConfig) => `
 
 function buildRemotes(mfConf, getRemoteUri) {
   const builtinsTemplate = `
+    ${rpcLoadTemplate}
     ${rpcPerformTemplate}
     ${rpcProcessTemplate(mfConf)}
   `;
