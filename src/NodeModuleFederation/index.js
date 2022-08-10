@@ -1,26 +1,5 @@
 const rpcLoadTemplate = require("../templates/rpcLoad");
-
-const rpcPerformTemplate = `
-    ${rpcLoadTemplate}
-    function rpcPerform(remoteUrl) {
-        const scriptUrl = remoteUrl.split("@")[1];
-        const moduleName = remoteUrl.split("@")[0];
-        return new Promise(function (resolve, reject) {
-            rpcLoad(scriptUrl, function(error, scriptContent) {
-                if (error) { reject(error); }
-                //TODO using vm??
-                const remote = eval(scriptContent + '\\n  try{' + moduleName + '}catch(e) { null; };');
-                if (!remote) {
-                  reject("remote library " + moduleName + " is not found at " + scriptUrl);
-                } else if (remote instanceof Promise) {
-                    return remote;
-                } else {
-                    resolve(remote);
-                }
-            });
-        });
-    }
-`;
+const rpcPerformTemplate = require("../templates/rpcPerform");
 
 const rpcProcessTemplate = (mfConfig) => `
     function rpcProcess(remote) {
@@ -44,9 +23,13 @@ const rpcProcessTemplate = (mfConfig) => `
     }
 `;
 
-function buildRemotes(mfConf, getRemoteUri) {
+function buildRemotes(
+  mfConf,
+  { customRpcLoadTemplate, customRpcPerformTemplate, getRemoteUri }
+) {
   const builtinsTemplate = `
-    ${rpcPerformTemplate}
+    ${customRpcLoadTemplate || rpcLoadTemplate}
+    ${customRpcPerformTemplate || rpcPerformTemplate}
     ${rpcProcessTemplate(mfConf)}
   `;
   return Object.entries(mfConf.remotes || {}).reduce((acc, [name, config]) => {
@@ -54,9 +37,7 @@ function buildRemotes(mfConf, getRemoteUri) {
       external: `external (async function() {
         ${builtinsTemplate}
         return rpcPerform(${
-          getRemoteUri
-            ? `await ${getRemoteUri(config)}`
-            : `"${config}"`
+          getRemoteUri ? `await ${getRemoteUri(config)}` : `"${config}"`
         }).then(rpcProcess).catch((err) => { console.error(err); })
       }())`,
     };
@@ -71,14 +52,23 @@ class NodeModuleFederation {
   }
 
   apply(compiler) {
-    const { getRemoteUri, ...options } = this.options;
+    const {
+      customRpcLoadTemplate,
+      customRpcPerformTemplate,
+      getRemoteUri,
+      ...options
+    } = this.options;
     // When used with Next.js, context is needed to use Next.js webpack
     const { webpack } = this.context;
 
     new (webpack?.container.ModuleFederationPlugin ||
       require("webpack/lib/container/ModuleFederationPlugin"))({
       ...options,
-      remotes: buildRemotes(options, getRemoteUri),
+      remotes: buildRemotes(options, {
+        customRpcLoadTemplate,
+        customRpcPerformTemplate,
+        getRemoteUri,
+      }),
     }).apply(compiler);
   }
 }

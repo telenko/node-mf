@@ -11,7 +11,7 @@ const { getInitialChunkIds } = require("webpack/lib/javascript/StartupHelpers");
 const compileBooleanMatcher = require("webpack/lib/util/compileBooleanMatcher");
 const { getUndoPath } = require("webpack/lib/util/identifier");
 
-const rpcLoadTemplate = require("../templates/rpcLoad");
+const rpcLoadFromBaseURITemplate = require("../templates/rpcLoadFromBaseURI");
 
 class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
   constructor(runtimeRequirements, options, context) {
@@ -26,7 +26,7 @@ class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
    */
   generate() {
     const { chunkGraph, chunk } = this;
-    const { baseURI, getBaseUri } = this.options;
+    const { baseURI, customRpcLoadFromBaseURITemplate, getBaseUri } = this.options;
     const { webpack } = this.context;
     const { runtimeTemplate } = this.compilation;
     const fn = RuntimeGlobals.ensureChunkHandlers;
@@ -154,8 +154,8 @@ class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
                           )} + ${
                             RuntimeGlobals.getChunkScriptFilename
                           }(chunkId));`,
-                          rpcLoadTemplate,
-                          `rpcLoad(${
+                          customRpcLoadFromBaseURITemplate || rpcLoadFromBaseURITemplate,
+                          `rpcLoadFromBaseURI(${
                             getBaseUri
                               ? `await ${getBaseUri(baseURI)}`
                               : `"${baseURI}"`
@@ -201,9 +201,9 @@ class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
                 `var filename = require('path').join(__dirname, ${JSON.stringify(
                   rootOutputDir
                 )} + ${RuntimeGlobals.getChunkUpdateScriptFilename}(chunkId));`,
-                rpcLoadTemplate,
-                `rpcLoad(${
-                  promiseBaseURI ? `await ${promiseBaseURI}` : `"${baseURI}"`
+                customRpcLoadFromBaseURITemplate || rpcLoadFromBaseURITemplate,
+                `rpcLoadFromBaseURI(${
+                  getBaseUri ? `await ${getBaseUri(baseURI)}` : `"${baseURI}"`
                 }, ${
                   RuntimeGlobals.getChunkUpdateScriptFilename
                 }(chunkId), function(err, content) {`,

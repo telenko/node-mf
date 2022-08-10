@@ -1,8 +1,9 @@
 /**
- * rpcLoad(url, cb)
+ * rpcLoadFromBaseURI(baseURI, fileName, cb)
  */
 module.exports = `
-    function rpcLoad(url, cb) {
+    function rpcLoadFromBaseURI(baseURI, fileName, cb) {
+        var url = new URL(arguments[1], arguments[0]).toString();
         if (typeof cb !== "function") {
             throw new Error("last argument should be a function");
         }
